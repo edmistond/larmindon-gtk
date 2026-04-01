@@ -1,3 +1,9 @@
+mod audio_capture;
+mod audio_config;
+mod audio_engine;
+mod settings;
+mod ui_event;
+mod vad;
 mod window;
 
 use gtk4 as gtk;
