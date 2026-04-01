@@ -2,7 +2,6 @@ use parakeet_rs::{ExecutionConfig, Nemotron};
 use rubato::{FftFixedIn, Resampler};
 use rusqlite::Connection;
 use std::collections::VecDeque;
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -14,7 +13,7 @@ use crate::settings::{self, Settings};
 use crate::ui_event::{UiEvent, UiSender};
 use crate::vad::{VadDecision, VadProcessor, VadState};
 
-const VAD_MODEL_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/models/silero_vad.onnx");
+const VAD_MODEL_BYTES: &[u8] = include_bytes!("../models/silero_vad.onnx");
 const ASR_SAMPLE_RATE: usize = 16000;
 const VAD_FRAME_SIZE: usize = 512;
 
@@ -365,9 +364,9 @@ impl AudioEngine {
         let mut model = Nemotron::from_pretrained(&model_path, Some(model_config))?;
         println!("Model loaded.");
 
-        println!("Loading Silero VAD model from {}...", VAD_MODEL_PATH);
+        println!("Loading Silero VAD model (embedded)...");
         let mut vad = VadProcessor::new(
-            Path::new(VAD_MODEL_PATH),
+            VAD_MODEL_BYTES,
             0.5, // threshold
             500, // min_silence_duration_ms
             250, // min_speech_duration_ms

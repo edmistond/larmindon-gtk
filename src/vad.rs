@@ -1,7 +1,6 @@
 use ndarray::{s, Array1, Array2, ArrayD, IxDyn};
 use ort::session::Session;
 use ort::value::Tensor;
-use std::path::Path;
 
 const VAD_SAMPLE_RATE: u32 = 16_000;
 const VAD_CHUNK_SIZE: usize = 512;
@@ -21,11 +20,11 @@ struct SileroModel {
 }
 
 impl SileroModel {
-    fn new(model_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(model_bytes: &[u8]) -> Result<Self, Box<dyn std::error::Error>> {
         let session = Session::builder()?
             .with_intra_threads(1)?
             .with_inter_threads(1)?
-            .commit_from_file(model_path)?;
+            .commit_from_memory(model_bytes)?;
 
         Ok(Self {
             session,
@@ -179,13 +178,13 @@ pub struct VadProcessor {
 
 impl VadProcessor {
     pub fn new(
-        model_path: &Path,
+        model_bytes: &[u8],
         threshold: f32,
         min_silence_duration_ms: u32,
         min_speech_duration_ms: u32,
         pre_speech_ms: usize,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let model = SileroModel::new(model_path)?;
+        let model = SileroModel::new(model_bytes)?;
         let pre_speech_samples = VAD_SAMPLE_RATE as usize * pre_speech_ms / 1000;
         let frame_ms = (VAD_CHUNK_SIZE as f32 / VAD_SAMPLE_RATE as f32 * 1000.0) as u32; // 32ms
 
