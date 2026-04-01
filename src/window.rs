@@ -26,19 +26,22 @@ impl MainWindow {
             .title("Larmindon")
             .default_width(600)
             .default_height(200)
-            .decorated(false)
             .build();
 
-        // No headerbar — build a toolbar row overlaid on the content
+        // Use a zero-height widget as the titlebar — this removes the visible
+        // headerbar but keeps compositor resize handles intact.
+        let empty_titlebar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        empty_titlebar.set_visible(false);
+        window.set_titlebar(Some(&empty_titlebar));
+
+        // Overlay toolbar: hamburger + close floating on the content
         let menu_button = gtk::MenuButton::builder()
             .icon_name("open-menu-symbolic")
             .tooltip_text("Menu")
             .build();
-        menu_button.add_css_class("flat");
         menu_button.add_css_class("overlay-btn");
 
         let close_button = gtk::Button::from_icon_name("window-close-symbolic");
-        close_button.add_css_class("flat");
         close_button.add_css_class("overlay-btn");
         close_button.set_tooltip_text(Some("Close"));
         let win_clone = window.clone();
@@ -51,7 +54,6 @@ impl MainWindow {
         toolbar.set_halign(gtk::Align::Fill);
         toolbar.set_valign(gtk::Align::Start);
         toolbar.append(&menu_button);
-        // Spacer to push close button to the right
         let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         spacer.set_hexpand(true);
         toolbar.append(&spacer);
@@ -62,7 +64,7 @@ impl MainWindow {
             .editable(false)
             .cursor_visible(false)
             .wrap_mode(gtk::WrapMode::Word)
-            .top_margin(28) // leave room for the toolbar overlay
+            .top_margin(24) // room for the overlay buttons
             .build();
         text_view.add_css_class("caption-view");
 
