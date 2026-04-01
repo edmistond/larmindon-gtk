@@ -94,7 +94,25 @@ This installs:
 
 ### Flatpak
 
-A Flatpak manifest is not yet included. The Meson build system is the foundation for one — adding Flatpak support is a future task.
+Build and install locally:
+
+```sh
+flatpak-builder --user --install --force-clean .flatpak-build com.davidedmiston.Larmindon.yml
+```
+
+Run the installed Flatpak:
+
+```sh
+flatpak run com.davidedmiston.Larmindon
+```
+
+Requires the GNOME 49 runtime, SDK, Rust, and LLVM extensions from Flathub:
+
+```sh
+flatpak install flathub org.gnome.Platform//49 org.gnome.Sdk//49 \
+  org.freedesktop.Sdk.Extension.rust-stable//24.08 \
+  org.freedesktop.Sdk.Extension.llvm20//25.08
+```
 
 ## Configuration
 

@@ -1,0 +1,34 @@
+app-id: com.davidedmiston.Larmindon
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.llvm20
+
+command: larmindon-gtk
+
+finish-args:
+  - --socket=pulseaudio
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  - --filesystem=home:ro
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm20/bin
+  env:
+    CARGO_HOME: /run/build/larmindon-gtk/cargo
+    LIBCLANG_PATH: /usr/lib/sdk/llvm20/lib
+
+modules:
+  - name: larmindon-gtk
+    buildsystem: meson
+    build-options:
+      # Network access needed for cargo dependencies and ort ONNX Runtime download
+      build-args:
+        - --share=network
+    sources:
+      - type: dir
+        path: .
