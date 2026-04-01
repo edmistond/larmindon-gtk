@@ -64,7 +64,8 @@ impl MainWindow {
             .editable(false)
             .cursor_visible(false)
             .wrap_mode(gtk::WrapMode::Word)
-            .top_margin(24) // room for the overlay buttons
+            .top_margin(20) // room for the overlay buttons
+            .left_margin(32) // gutter so text clears the menu button
             .build();
         text_view.add_css_class("caption-view");
 
