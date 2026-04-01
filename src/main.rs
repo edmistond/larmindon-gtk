@@ -147,22 +147,22 @@ fn main() {
         });
 
         // Build the window
-        let main_window = window::MainWindow::new(app);
+        let main_window = window::MainWindow::new(app, cmd_tx.clone(), settings.clone());
 
-        // Store cmd_tx for later use by menu actions
-        let cmd_tx_for_start = cmd_tx.clone();
-        let settings_clone = settings.clone();
-
-        // Auto-start transcription on default device
+        // Get initial device list, populate menu, and auto-start
         {
             let (reply_tx, reply_rx) = mpsc::channel();
-            let _ = cmd_tx_for_start.send(Command::ListDevices { reply: reply_tx });
+            let _ = cmd_tx.send(Command::ListDevices { reply: reply_tx });
             if let Ok(devices) = reply_rx.recv() {
+                main_window.update_device_menu(&devices);
                 let default_dev = audio_capture::select_default_device(&devices);
+                if let Some(ref dev_id) = default_dev {
+                    main_window.set_active_device(dev_id);
+                }
                 if default_dev.is_some() {
-                    let _ = cmd_tx_for_start.send(Command::Start {
+                    let _ = cmd_tx.send(Command::Start {
                         device_id: default_dev,
-                        settings: settings_clone,
+                        settings: settings.clone(),
                     });
                 }
             }
@@ -186,10 +186,10 @@ fn main() {
                         eprintln!("[UI] Error: {}", text);
                     }
                     UiEvent::SourceSwitched { device_id } => {
-                        println!("[UI] Source switched to: {}", device_id);
+                        win.set_active_device(&device_id);
                     }
                     UiEvent::DevicesChanged { devices } => {
-                        println!("[UI] Devices changed: {} devices", devices.len());
+                        win.update_device_menu(&devices);
                     }
                 }
             }
