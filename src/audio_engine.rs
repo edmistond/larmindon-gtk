@@ -53,7 +53,7 @@ impl AudioEngine {
         capture_backend: Box<dyn AudioCapture>,
         active_session_info: Arc<Mutex<ActiveSessionInfo>>,
     ) -> Self {
-        println!(
+        app_log!(
             "AudioEngine initialized with {} backend",
             capture_backend.name()
         );
@@ -84,7 +84,7 @@ impl AudioEngine {
                             audio_capture::sort_devices_by_priority(devices)
                         }
                         Err(e) => {
-                            eprintln!("Failed to enumerate devices: {}", e);
+                            app_log!("Failed to enumerate devices: {}", e);
                             Vec::new()
                         }
                     };
@@ -93,7 +93,7 @@ impl AudioEngine {
                 Command::Start { device_id, settings } => {
                     self.stop_active_session();
                     if let Err(e) = self.start_session(device_id, settings) {
-                        eprintln!("Failed to start transcription: {}", e);
+                        app_log!("Failed to start transcription: {}", e);
                         let _ = self.ui_tx.send(UiEvent::TranscriptionError {
                             text: format!("Error: {}", e),
                         });
@@ -119,7 +119,7 @@ impl AudioEngine {
         settings: Settings,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let chunk_size = settings::chunk_ms_to_samples(settings.chunk_ms);
-        println!(
+        app_log!(
             "Session starting with chunk_ms={}ms ({} samples), intra={}, inter={}, punctuation_reset={}, empty_reset_threshold={}",
             settings.chunk_ms, chunk_size, settings.intra_threads, settings.inter_threads,
             settings.punctuation_reset, settings.empty_reset_threshold
@@ -162,14 +162,14 @@ impl AudioEngine {
         let input_rate = 48000;
         let needs_resample = input_rate != ASR_SAMPLE_RATE;
 
-        println!(
+        app_log!(
             "Audio config: {} Hz (resample: {})",
             input_rate, needs_resample
         );
 
         let buffer_for_thread = Arc::clone(&buffer);
         let processing_thread = thread::spawn(move || {
-            println!("[diag] Processing thread started");
+            app_log!("[diag] Processing thread started");
             match Self::processing_loop(
                 ui_tx,
                 buffer_for_thread,
@@ -178,8 +178,8 @@ impl AudioEngine {
                 needs_resample,
                 settings,
             ) {
-                Ok(()) => println!("[diag] Processing loop exited normally"),
-                Err(e) => eprintln!("[diag] Processing loop CRASHED: {}", e),
+                Ok(()) => app_log!("[diag] Processing loop exited normally"),
+                Err(e) => app_log!("[diag] Processing loop CRASHED: {}", e),
             }
         });
 
@@ -208,8 +208,8 @@ impl AudioEngine {
         }
         if let Some(handle) = self.processing_thread.take() {
             match handle.join() {
-                Ok(()) => println!("[diag] Processing thread joined cleanly"),
-                Err(e) => eprintln!("[diag] Processing thread PANICKED: {:?}", e),
+                Ok(()) => app_log!("[diag] Processing thread joined cleanly"),
+                Err(e) => app_log!("[diag] Processing thread PANICKED: {:?}", e),
             }
         }
         self.active_buffer = None;
@@ -226,11 +226,11 @@ impl AudioEngine {
         // Only reconnect if we have an active session
         let (Some(buffer), Some(stop_flag)) = (self.active_buffer.as_ref(), self.stop_flag.as_ref())
         else {
-            println!("[Engine] Reconnect ignored — no active session");
+            app_log!("[Engine] Reconnect ignored — no active session");
             return;
         };
 
-        println!("[Engine] Reconnecting to device {}", device_id);
+        app_log!("[Engine] Reconnecting to device {}", device_id);
 
         // Stop only the audio stream, NOT the processing thread
         if let Some(stream) = self.active_stream.take() {
@@ -264,10 +264,10 @@ impl AudioEngine {
                 let _ = self.ui_tx.send(UiEvent::SourceSwitched {
                     device_id: device_id.clone(),
                 });
-                println!("[Engine] Reconnected to device {}", device_id);
+                app_log!("[Engine] Reconnected to device {}", device_id);
             }
             Err(e) => {
-                eprintln!("[Engine] Reconnect failed: {}", e);
+                app_log!("[Engine] Reconnect failed: {}", e);
                 let _ = self.ui_tx.send(UiEvent::TranscriptionError {
                     text: format!("Reconnect failed: {}", e),
                 });
@@ -279,7 +279,7 @@ impl AudioEngine {
         let db_dir = settings::Settings::config_dir();
         std::fs::create_dir_all(&db_dir)?;
         let db_path = db_dir.join("larmindon_diag.sqlite");
-        println!("[diag] Diagnostics DB: {}", db_path.display());
+        app_log!("[diag] Diagnostics DB: {}", db_path.display());
         let conn = Connection::open(&db_path)?;
         conn.execute_batch(
             "PRAGMA journal_mode=WAL;
@@ -352,7 +352,7 @@ impl AudioEngine {
         let punctuation_reset_enabled = settings.punctuation_reset;
         let empty_reset_threshold = settings.empty_reset_threshold;
         let model_path = settings::expand_tilde(&settings.model_path);
-        println!(
+        app_log!(
             "Loading Nemotron model from {} (intra_threads={}, inter_threads={})...",
             model_path.display(),
             intra_threads,
@@ -362,9 +362,9 @@ impl AudioEngine {
             .with_intra_threads(intra_threads)
             .with_inter_threads(inter_threads);
         let mut model = Nemotron::from_pretrained(&model_path, Some(model_config))?;
-        println!("Model loaded.");
+        app_log!("Model loaded.");
 
-        println!("Loading Silero VAD model (embedded)...");
+        app_log!("Loading Silero VAD model (embedded)...");
         let mut vad = VadProcessor::new(
             VAD_MODEL_BYTES,
             0.5, // threshold
@@ -372,7 +372,7 @@ impl AudioEngine {
             250, // min_speech_duration_ms
             500, // pre_speech_ms (ring buffer = 500ms)
         )?;
-        println!("VAD model loaded.");
+        app_log!("VAD model loaded.");
 
         let mut resampler: Option<FftFixedIn<f32>> = if needs_resample {
             Some(FftFixedIn::<f32>::new(

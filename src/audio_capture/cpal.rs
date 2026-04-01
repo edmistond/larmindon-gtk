@@ -88,7 +88,7 @@ impl AudioCapture for CpalBackend {
         let device_name = device
             .name()
             .map_err(|e| format!("Failed to get device name: {}", e))?;
-        println!("CPAL: Using device: {}", device_name);
+        app_log!("CPAL: Using device: {}", device_name);
 
         let config = device
             .default_input_config()
@@ -97,7 +97,7 @@ impl AudioCapture for CpalBackend {
         let stream_config: StreamConfig = config.into();
         let channels = stream_config.channels as usize;
 
-        println!(
+        app_log!(
             "CPAL: {} channels, {} Hz, {:?}",
             channels, stream_config.sample_rate, sample_format
         );
@@ -132,7 +132,7 @@ fn build_stream(
     channels: usize,
     buffer: Arc<Mutex<VecDeque<f32>>>,
 ) -> Result<Stream, Box<dyn Error>> {
-    let err_fn = |err| eprintln!("CPAL stream error: {}", err);
+    let err_fn = |err| app_log!("CPAL stream error: {}", err);
 
     let stream = match sample_format {
         SampleFormat::F32 => {

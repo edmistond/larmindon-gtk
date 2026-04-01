@@ -29,15 +29,45 @@ pub fn show_preferences(
 
     let mut row = 0;
 
-    // Model path
+    // Model path with directory picker
     let model_label = gtk::Label::new(Some("Model Path"));
     model_label.set_halign(gtk::Align::End);
     let model_entry = gtk::Entry::builder()
         .text(&current.model_path)
         .hexpand(true)
         .build();
+    let browse_btn = gtk::Button::with_label("Browse\u{2026}");
+    let model_row = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+    model_row.append(&model_entry);
+    model_row.append(&browse_btn);
+    model_entry.set_hexpand(true);
     grid.attach(&model_label, 0, row, 1, 1);
-    grid.attach(&model_entry, 1, row, 1, 1);
+    grid.attach(&model_row, 1, row, 1, 1);
+
+    // Wire up directory chooser
+    let entry_for_browse = model_entry.clone();
+    let dialog_weak_for_browse = dialog.downgrade();
+    browse_btn.connect_clicked(move |_| {
+        let parent = dialog_weak_for_browse.upgrade();
+        let file_dialog = gtk::FileDialog::builder()
+            .title("Select Model Directory")
+            .build();
+        // Pre-select current path if it exists
+        let current_text = entry_for_browse.text().to_string();
+        let expanded = crate::settings::expand_tilde(&current_text);
+        if expanded.exists() {
+            let file = gtk::gio::File::for_path(&expanded);
+            file_dialog.set_initial_folder(Some(&file));
+        }
+        let entry_clone = entry_for_browse.clone();
+        file_dialog.select_folder(parent.as_ref(), gtk::gio::Cancellable::NONE, move |result| {
+            if let Ok(folder) = result {
+                if let Some(path) = folder.path() {
+                    entry_clone.set_text(&path.to_string_lossy());
+                }
+            }
+        });
+    });
     row += 1;
 
     // Chunk size dropdown

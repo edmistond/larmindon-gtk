@@ -1,6 +1,9 @@
+#[macro_use]
+mod log_buffer;
 mod audio_capture;
 mod audio_config;
 mod audio_engine;
+mod log_viewer;
 mod preferences;
 mod settings;
 mod ui_event;
@@ -36,7 +39,7 @@ fn create_audio_backend() -> Box<dyn AudioCapture> {
     if let Ok(backend) = std::env::var("LARMINDON_AUDIO_BACKEND") {
         match backend.as_str() {
             "cpal" => {
-                println!("Using CPAL backend (via LARMINDON_AUDIO_BACKEND env var)");
+                app_log!("Using CPAL backend (via LARMINDON_AUDIO_BACKEND env var)");
                 #[cfg(feature = "cpal")]
                 return audio_capture::cpal::create_backend();
                 #[cfg(not(feature = "cpal"))]
@@ -45,34 +48,34 @@ fn create_audio_backend() -> Box<dyn AudioCapture> {
             "pipewire" => {
                 #[cfg(all(target_os = "linux", feature = "pipewire"))]
                 {
-                    println!("Using PipeWire backend (via LARMINDON_AUDIO_BACKEND env var)");
+                    app_log!("Using PipeWire backend (via LARMINDON_AUDIO_BACKEND env var)");
                     return audio_capture::pipewire::create_backend();
                 }
                 #[cfg(not(all(target_os = "linux", feature = "pipewire")))]
                 panic!("PipeWire backend requested but feature not enabled");
             }
             _ => {
-                eprintln!("Unknown LARMINDON_AUDIO_BACKEND={backend}, using default");
+                app_log!("Unknown LARMINDON_AUDIO_BACKEND={backend}, using default");
             }
         }
     }
 
     #[cfg(all(target_os = "linux", feature = "pipewire"))]
     {
-        println!("Attempting PipeWire backend...");
+        app_log!("Attempting PipeWire backend...");
         match test_pipewire_available() {
             Ok(true) => {
-                println!("PipeWire available, using PipeWire backend");
+                app_log!("PipeWire available, using PipeWire backend");
                 return audio_capture::pipewire::create_backend();
             }
-            Ok(false) => println!("PipeWire not available, falling back to CPAL"),
-            Err(e) => eprintln!("Error testing PipeWire: {}, falling back to CPAL", e),
+            Ok(false) => app_log!("PipeWire not available, falling back to CPAL"),
+            Err(e) => app_log!("Error testing PipeWire: {}, falling back to CPAL", e),
         }
     }
 
     #[cfg(feature = "cpal")]
     {
-        println!("Using CPAL backend");
+        app_log!("Using CPAL backend");
         audio_capture::cpal::create_backend()
     }
     #[cfg(not(feature = "cpal"))]
@@ -106,7 +109,7 @@ fn main() {
 
     app.connect_activate(|app| {
         let settings = Settings::load().with_env_overrides();
-        println!(
+        app_log!(
             "Settings: chunk_ms={}, intra={}, inter={}, punctuation_reset={}, model={}",
             settings.chunk_ms, settings.intra_threads, settings.inter_threads,
             settings.punctuation_reset, settings.model_path,
@@ -151,6 +154,17 @@ fn main() {
         let main_window = window::MainWindow::new(app, cmd_tx.clone(), settings.clone());
         main_window.apply_font_settings(&settings);
 
+        // Check if model path exists; show guidance if not
+        {
+            let expanded = settings::expand_tilde(&settings.model_path);
+            if !expanded.exists() {
+                main_window.append_text(
+                    "Model directory not found. Open the menu (\u{2630}) \
+                     and go to Preferences to set your model path.\n"
+                );
+            }
+        }
+
         // Get initial device list, populate menu, and auto-start
         {
             let (reply_tx, reply_rx) = mpsc::channel();
@@ -185,7 +199,8 @@ fn main() {
                         win.append_text(&text);
                     }
                     UiEvent::TranscriptionError { text } => {
-                        eprintln!("[UI] Error: {}", text);
+                        app_log!("[UI] Error: {}", text);
+                        win.append_text(&format!("\n{}\n", text));
                     }
                     UiEvent::SourceSwitched { device_id } => {
                         win.set_active_device(&device_id);

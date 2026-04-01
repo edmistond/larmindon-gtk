@@ -54,11 +54,11 @@ impl Settings {
         match std::fs::read_to_string(&path) {
             Ok(contents) => match serde_json::from_str::<Settings>(&contents) {
                 Ok(settings) => {
-                    println!("Loaded settings from {}", path.display());
+                    app_log!("Loaded settings from {}", path.display());
                     settings
                 }
                 Err(e) => {
-                    eprintln!(
+                    app_log!(
                         "Failed to parse settings from {}: {}. Using defaults.",
                         path.display(),
                         e
@@ -67,7 +67,7 @@ impl Settings {
                 }
             },
             Err(_) => {
-                println!(
+                app_log!(
                     "No settings file at {}, using defaults.",
                     path.display()
                 );
@@ -92,7 +92,7 @@ impl Settings {
         std::fs::write(&path, json)
             .map_err(|e| format!("Failed to write settings to {}: {}", path.display(), e))?;
 
-        println!("Settings saved to {}", path.display());
+        app_log!("Settings saved to {}", path.display());
         Ok(())
     }
 
@@ -102,54 +102,54 @@ impl Settings {
         if let Ok(val) = std::env::var("CHUNK_MS") {
             if let Ok(ms) = val.parse::<usize>() {
                 if VALID_CHUNK_MS.contains(&ms) {
-                    println!("Using CHUNK_MS={ms}ms from environment");
+                    app_log!("Using CHUNK_MS={ms}ms from environment");
                     self.chunk_ms = ms;
                 } else {
-                    eprintln!(
+                    app_log!(
                         "Invalid CHUNK_MS={ms}; must be one of {:?}. Keeping saved value {}ms.",
                         VALID_CHUNK_MS, self.chunk_ms
                     );
                 }
             } else {
-                eprintln!("Could not parse CHUNK_MS={val:?}. Keeping saved value.");
+                app_log!("Could not parse CHUNK_MS={val:?}. Keeping saved value.");
             }
         }
 
         if let Ok(val) = std::env::var("INTRA_THREADS") {
             match val.parse::<usize>() {
                 Ok(n) if n >= 1 => {
-                    println!("Using INTRA_THREADS={n} from environment");
+                    app_log!("Using INTRA_THREADS={n} from environment");
                     self.intra_threads = n;
                 }
-                _ => eprintln!("Invalid INTRA_THREADS={val:?}, keeping saved value."),
+                _ => app_log!("Invalid INTRA_THREADS={val:?}, keeping saved value."),
             }
         }
 
         if let Ok(val) = std::env::var("INTER_THREADS") {
             match val.parse::<usize>() {
                 Ok(n) if n >= 1 => {
-                    println!("Using INTER_THREADS={n} from environment");
+                    app_log!("Using INTER_THREADS={n} from environment");
                     self.inter_threads = n;
                 }
-                _ => eprintln!("Invalid INTER_THREADS={val:?}, keeping saved value."),
+                _ => app_log!("Invalid INTER_THREADS={val:?}, keeping saved value."),
             }
         }
 
         if let Ok(val) = std::env::var("PUNCTUATION_RESET") {
             match val.to_lowercase().as_str() {
                 "0" | "false" | "no" => {
-                    println!(
+                    app_log!(
                         "Punctuation-based decoder reset DISABLED via PUNCTUATION_RESET={val}"
                     );
                     self.punctuation_reset = false;
                 }
                 "1" | "true" | "yes" => {
-                    println!(
+                    app_log!(
                         "Punctuation-based decoder reset ENABLED via PUNCTUATION_RESET={val}"
                     );
                     self.punctuation_reset = true;
                 }
-                _ => eprintln!("Unknown PUNCTUATION_RESET={val:?}, keeping saved value."),
+                _ => app_log!("Unknown PUNCTUATION_RESET={val:?}, keeping saved value."),
             }
         }
 
@@ -180,7 +180,7 @@ impl Settings {
         // Warn (but don't error) if model path doesn't exist
         let expanded = expand_tilde(&self.model_path);
         if !expanded.exists() {
-            eprintln!(
+            app_log!(
                 "Warning: model path {} does not exist",
                 expanded.display()
             );

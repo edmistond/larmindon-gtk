@@ -23,7 +23,7 @@ pub fn create_backend() -> Box<dyn AudioCapture> {
 
 impl AudioCapture for PipewireBackend {
     fn enumerate_devices(&self) -> Result<Vec<AudioDevice>, Box<dyn Error>> {
-        println!("[PipeWire] Enumerating devices...");
+        app_log!("[PipeWire] Enumerating devices...");
         let (tx, rx) = mpsc::channel::<Result<Vec<AudioDevice>, String>>();
 
         thread::spawn(move || {
@@ -60,7 +60,7 @@ impl AudioCapture for PipewireBackend {
             .map(|d| d.device_type.clone())
             .unwrap_or(DeviceType::Application);
 
-        println!(
+        app_log!(
             "[PipeWire] Starting stream for device: {} (type: {:?})",
             device_id, device_type
         );
@@ -85,7 +85,7 @@ impl AudioCapture for PipewireBackend {
                 stop_flag_clone,
                 shutdown_rx,
             ) {
-                eprintln!("[PipeWire] Stream thread error: {}", e);
+                app_log!("[PipeWire] Stream thread error: {}", e);
             }
         });
 
@@ -113,7 +113,7 @@ struct PipewireStream {
 
 impl AudioStream for PipewireStream {
     fn stop(mut self: Box<Self>) {
-        println!("[PipeWire] Stopping stream...");
+        app_log!("[PipeWire] Stopping stream...");
 
         // Signal the stream thread to stop via shutdown channel.
         // Do NOT set stop_flag here — it's shared with the processing thread
@@ -123,12 +123,12 @@ impl AudioStream for PipewireStream {
         // Wait for thread to finish
         if let Some(thread) = self.thread.take() {
             match thread.join() {
-                Ok(_) => println!("[PipeWire] Stream thread joined"),
-                Err(e) => eprintln!("[PipeWire] Stream thread panicked: {:?}", e),
+                Ok(_) => app_log!("[PipeWire] Stream thread joined"),
+                Err(e) => app_log!("[PipeWire] Stream thread panicked: {:?}", e),
             }
         }
 
-        println!("[PipeWire] Stream stopped");
+        app_log!("[PipeWire] Stream stopped");
     }
 }
 
@@ -149,7 +149,7 @@ fn stream_thread_func(
     use pipewire::spa::utils::SpaTypes;
     use pipewire::stream::{StreamBox, StreamFlags};
 
-    println!(
+    app_log!(
         "[PipeWire] Stream thread starting for node {} (type: {:?})",
         target_node_id, device_type
     );
@@ -170,7 +170,7 @@ fn stream_thread_func(
     // For sink monitors, we need to tell PipeWire to capture from the monitor ports
     if device_type == DeviceType::Monitor {
         props.insert("stream.capture.sink", "true");
-        println!("[PipeWire] Capturing from sink monitor ports");
+        app_log!("[PipeWire] Capturing from sink monitor ports");
     }
 
     // Create the stream
@@ -183,14 +183,14 @@ fn stream_thread_func(
     let _listener = stream
         .add_local_listener::<()>()
         .state_changed(|_stream, _user_data, old_state, new_state| {
-            println!(
+            app_log!(
                 "[PipeWire] Stream state changed: {:?} -> {:?}",
                 old_state, new_state
             );
         })
         .param_changed(|_stream, _user_data, id, param| {
             if param.is_some() {
-                println!("[PipeWire] Format negotiated (param id={})", id);
+                app_log!("[PipeWire] Format negotiated (param id={})", id);
             }
         })
         .process(move |stream, _user_data| {
@@ -249,7 +249,7 @@ fn stream_thread_func(
                             guard.extend(mono.iter());
                         }
                     } else {
-                        println!(
+                        app_log!(
                             "[PipeWire] Unsupported stride: {} (size={})",
                             stride, size
                         );
@@ -287,7 +287,7 @@ fn stream_thread_func(
         &mut params,
     )?;
 
-    println!("[PipeWire] Stream connected, targeting node {}", target_node_id);
+    app_log!("[PipeWire] Stream connected, targeting node {}", target_node_id);
 
     // Run the mainloop with periodic stop checks
     let mainloop_ptr = &mainloop as *const MainLoopBox as usize;
@@ -321,7 +321,7 @@ fn stream_thread_func(
     // Run the mainloop
     mainloop.run();
 
-    println!("[PipeWire] Stream thread exiting");
+    app_log!("[PipeWire] Stream thread exiting");
     Ok(())
 }
 
@@ -464,7 +464,7 @@ fn enumerate_devices_thread() -> Result<Vec<AudioDevice>, String> {
                                     // Value is JSON like {"name":"alsa_output.pci-..."}
                                     // Parse the name field
                                     if let Some(name) = parse_metadata_name(val) {
-                                        println!(
+                                        app_log!(
                                             "[PipeWire] Default audio sink: {}",
                                             name
                                         );
@@ -511,7 +511,7 @@ fn enumerate_devices_thread() -> Result<Vec<AudioDevice>, String> {
         all_devices.extend(inputs.lock().unwrap().drain(..));
         all_devices.extend(monitors_vec.drain(..).map(|m| m.device));
 
-        println!("[PipeWire] Found {} devices", all_devices.len());
+        app_log!("[PipeWire] Found {} devices", all_devices.len());
         Ok(all_devices)
     })();
 
@@ -633,7 +633,7 @@ pub fn start_watcher(
             devices_cache,
             stop_flag_clone,
         ) {
-            eprintln!("[PipeWire Watcher] Thread error: {}", e);
+            app_log!("[PipeWire Watcher] Thread error: {}", e);
         }
     });
 
@@ -706,7 +706,7 @@ fn watcher_thread(
                 let removed = devices_clone.lock().unwrap().remove(&id);
 
                 if let Some(entry) = &removed {
-                    println!(
+                    app_log!(
                         "[PipeWire Watcher] Device removed: {} ({})",
                         entry.device.name, entry.device.id
                     );
@@ -732,7 +732,7 @@ fn watcher_thread(
                         };
 
                         if let Some(monitor_id) = default_monitor {
-                            println!(
+                            app_log!(
                                 "[PipeWire Watcher] Active stream lost, falling back to default monitor: {}",
                                 monitor_id
                             );
@@ -772,10 +772,10 @@ fn watcher_thread(
         )
         .into_result()?;
 
-    println!("[PipeWire Watcher] Started, listening for device changes");
+    app_log!("[PipeWire Watcher] Started, listening for device changes");
     mainloop.run();
 
-    println!("[PipeWire Watcher] Stopped");
+    app_log!("[PipeWire Watcher] Stopped");
     Ok(())
 }
 

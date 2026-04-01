@@ -40,6 +40,7 @@ impl MainWindow {
             .tooltip_text("Menu")
             .build();
         menu_button.add_css_class("overlay-btn");
+        menu_button.add_css_class("flat");
 
         let close_button = gtk::Button::from_icon_name("window-close-symbolic");
         close_button.add_css_class("overlay-btn");
@@ -172,6 +173,13 @@ impl MainWindow {
             });
         });
         self.window.add_action(&prefs);
+
+        // view-logs action
+        let view_logs = gio::SimpleAction::new("view-logs", None);
+        view_logs.connect_activate(move |_, _| {
+            crate::log_viewer::show_log_viewer();
+        });
+        self.window.add_action(&view_logs);
     }
 
     fn setup_gestures(&self) {
@@ -263,7 +271,8 @@ impl MainWindow {
 
         // Settings section
         let settings_section = gio::Menu::new();
-        settings_section.append(Some("Preferences..."), Some("win.preferences"));
+        settings_section.append(Some("Preferences\u{2026}"), Some("win.preferences"));
+        settings_section.append(Some("View Logs\u{2026}"), Some("win.view-logs"));
         menu.append_section(None, &settings_section);
 
         self.menu_button.set_menu_model(Some(&menu));
