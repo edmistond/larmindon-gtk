@@ -2,15 +2,16 @@ window {
     background-color: #1e1e1e;
 }
 
-headerbar {
+.slim-headerbar {
     background-color: #222222;
-    min-height: 32px;
-    padding: 0;
+    min-height: 24px;
+    padding: 0 4px;
 }
 
-headerbar .title {
-    font-size: 0.85em;
-    color: #999999;
+.slim-headerbar button {
+    min-height: 20px;
+    min-width: 20px;
+    padding: 2px 6px;
 }
 
 .caption-view {

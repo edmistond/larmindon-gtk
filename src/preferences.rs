@@ -94,25 +94,25 @@ pub fn show_preferences(
     grid.attach(&empty_spin, 1, row, 1, 1);
     row += 1;
 
-    // Font family
-    let font_label = gtk::Label::new(Some("Font Family"));
+    // Font picker (family + size in one widget)
+    let font_label = gtk::Label::new(Some("Caption Font"));
     font_label.set_halign(gtk::Align::End);
-    let font_entry = gtk::Entry::builder()
-        .text(&current.font_family)
-        .placeholder_text("Default")
-        .hexpand(true)
-        .build();
+    #[allow(deprecated)] // FontButton deprecated in 4.10 but FontDialogButton needs async
+    let font_button = gtk::FontButton::new();
+    // Build Pango font string from settings (px → pt for Pango: 1px ≈ 0.75pt)
+    if !current.font_family.is_empty() || current.font_size_px > 0 {
+        let family = if current.font_family.is_empty() { "Sans" } else { &current.font_family };
+        let pt = if current.font_size_px > 0 {
+            (current.font_size_px as f64 * 0.75).round() as u32
+        } else {
+            12
+        };
+        use gtk::prelude::FontChooserExt;
+        font_button.set_font(&format!("{} {}", family, pt));
+    }
+    font_button.set_hexpand(true);
     grid.attach(&font_label, 0, row, 1, 1);
-    grid.attach(&font_entry, 1, row, 1, 1);
-    row += 1;
-
-    // Font size
-    let size_label = gtk::Label::new(Some("Font Size (px)"));
-    size_label.set_halign(gtk::Align::End);
-    let size_spin = gtk::SpinButton::with_range(0.0, 72.0, 1.0);
-    size_spin.set_value(current.font_size_px as f64);
-    grid.attach(&size_label, 0, row, 1, 1);
-    grid.attach(&size_spin, 1, row, 1, 1);
+    grid.attach(&font_button, 1, row, 1, 1);
     row += 1;
 
     // Error label (hidden by default)
@@ -150,6 +150,22 @@ pub fn show_preferences(
     let dialog_weak = dialog.downgrade();
     let on_save = Rc::new(RefCell::new(Some(on_save)));
     save_btn.connect_clicked(move |_| {
+        // Extract font family and size from FontButton's pango FontDescription
+        use gtk::prelude::FontChooserExt;
+        let (font_family, font_size_px) = if let Some(desc) = font_button.font_desc() {
+            let family = desc.family().map(|f| f.to_string()).unwrap_or_default();
+            // Pango size is in Pango units (1/1024 pt); convert to px (approx 1pt = 1.333px)
+            let pango_size = desc.size();
+            let px = if pango_size > 0 {
+                ((pango_size as f64 / pango::SCALE as f64) * 1.333).round() as u32
+            } else {
+                0
+            };
+            (family, px)
+        } else {
+            (String::new(), 0)
+        };
+
         let new_settings = Settings {
             model_path: model_entry.text().to_string(),
             chunk_ms: chunk_values[chunk_dropdown.selected() as usize],
@@ -157,8 +173,8 @@ pub fn show_preferences(
             inter_threads: inter_spin.value() as usize,
             punctuation_reset: punct_switch.is_active(),
             empty_reset_threshold: empty_spin.value() as u32,
-            font_family: font_entry.text().to_string(),
-            font_size_px: size_spin.value() as u32,
+            font_family,
+            font_size_px,
         };
 
         if let Err(e) = new_settings.validate() {

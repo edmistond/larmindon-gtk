@@ -28,15 +28,29 @@ impl MainWindow {
             .default_height(200)
             .build();
 
-        // HeaderBar with hamburger menu
+        // Slim custom titlebar — just hamburger + close, no min/max/title
         let headerbar = gtk::HeaderBar::new();
-        headerbar.set_show_title_buttons(true);
+        headerbar.set_show_title_buttons(false);
+        headerbar.add_css_class("slim-headerbar");
 
         let menu_button = gtk::MenuButton::builder()
             .icon_name("open-menu-symbolic")
             .tooltip_text("Menu")
             .build();
         headerbar.pack_start(&menu_button);
+
+        // Empty title widget to suppress the default title label
+        let empty = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        headerbar.set_title_widget(Some(&empty));
+
+        let close_button = gtk::Button::from_icon_name("window-close-symbolic");
+        close_button.add_css_class("flat");
+        close_button.set_tooltip_text(Some("Close"));
+        let win_clone = window.clone();
+        close_button.connect_clicked(move |_| {
+            win_clone.close();
+        });
+        headerbar.pack_end(&close_button);
 
         window.set_titlebar(Some(&headerbar));
 

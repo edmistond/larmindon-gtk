@@ -1089,6 +1089,7 @@ dependencies = [
  "libspa",
  "ndarray",
  "ort",
+ "pango",
  "parakeet-rs",
  "pipewire",
  "rubato",
