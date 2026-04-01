@@ -1,0 +1,30 @@
+window {
+    background-color: #1e1e1e;
+}
+
+headerbar {
+    background-color: #222222;
+    min-height: 32px;
+    padding: 0;
+}
+
+headerbar .title {
+    font-size: 0.85em;
+    color: #999999;
+}
+
+.caption-view {
+    background-color: #1e1e1e;
+    color: #f0f0f0;
+    font-size: 18px;
+    padding: 8px 12px;
+}
+
+.caption-view text {
+    background-color: transparent;
+}
+
+.placeholder-text {
+    color: #777777;
+    font-style: italic;
+}
