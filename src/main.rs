@@ -10,7 +10,7 @@ mod window;
 use audio_capture::{ActiveSessionInfo, AudioCapture};
 use audio_engine::{AudioEngine, Command};
 use settings::Settings;
-use ui_event::{UiEvent, UiReceiver};
+use ui_event::UiEvent;
 
 use gtk4 as gtk;
 use gtk::prelude::*;

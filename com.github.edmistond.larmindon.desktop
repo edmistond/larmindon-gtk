@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Larmindon
+Comment=Real-time speech-to-text captioning
+Exec=larmindon-gtk
+Icon=com.github.edmistond.larmindon
+Terminal=false
+Type=Application
+Categories=Accessibility;Audio;Utility;
+Keywords=caption;transcription;speech;subtitle;
