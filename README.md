@@ -2,6 +2,8 @@
 
 Real-time speech-to-text captioning for Linux. Captures system audio via PipeWire and transcribes it using the Nemotron ASR model, displaying live captions in a minimal overlay window.
 
+Note that Flatpak packaging is still a work in progress. It will install and run, but there seems to still be an issue in model loading or similar that I'm trying to work out. If you have all the dependencies installed `cargo run` should work fine.
+
 ![Larmindon captioning a weather forecast](larmindon-gtk.jpg)
 
 ## Features
