@@ -164,9 +164,8 @@ impl MainWindow {
         let prefs = gio::SimpleAction::new("preferences", None);
         prefs.connect_activate(move |_, _| {
             let settings = win_clone.settings.borrow().clone();
-            let win = win_clone.clone();
-            let win_for_cb = win.clone();
-            crate::preferences::show_preferences(&win.window, &settings, move |new_settings| {
+            let win_for_cb = win_clone.clone();
+            crate::preferences::show_preferences(&settings, move |new_settings| {
                 win_for_cb.apply_font_settings(&new_settings);
                 *win_for_cb.settings.borrow_mut() = new_settings;
             });

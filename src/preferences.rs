@@ -8,14 +8,11 @@ use std::rc::Rc;
 
 /// Show a preferences dialog. Calls `on_save` with the new settings when saved.
 pub fn show_preferences(
-    parent: &gtk::ApplicationWindow,
     current: &Settings,
     on_save: impl Fn(Settings) + 'static,
 ) {
     let dialog = gtk::Window::builder()
         .title("Preferences")
-        .transient_for(parent)
-        .modal(true)
         .default_width(450)
         .default_height(400)
         .resizable(false)
