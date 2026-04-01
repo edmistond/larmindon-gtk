@@ -4,7 +4,7 @@ use crate::settings::Settings;
 
 use gtk4 as gtk;
 use gtk::prelude::*;
-use gtk::gio;
+use gtk::{gio, gdk};
 
 use std::cell::RefCell;
 use std::sync::mpsc;
@@ -67,6 +67,7 @@ impl MainWindow {
         };
 
         main_window.setup_actions();
+        main_window.setup_gestures();
         main_window
     }
 
@@ -133,6 +134,49 @@ impl MainWindow {
             });
         });
         self.window.add_action(&start);
+    }
+
+    fn setup_gestures(&self) {
+        // Grab-anywhere drag to move window via GDK Toplevel::begin_move
+        let drag = gtk::GestureDrag::new();
+        drag.set_button(gdk::BUTTON_PRIMARY);
+        let window = self.window.clone();
+        drag.connect_drag_begin(move |gesture, x, y| {
+            if let Some(native) = window.native() {
+                if let Some(surface) = native.surface() {
+                    if let Some(toplevel) = surface.downcast_ref::<gdk::Toplevel>() {
+                        if let Some(event) = gesture.last_event(gesture.current_sequence().as_ref()) {
+                            if let Some(device) = event.device() {
+                                let timestamp = event.time();
+                                // Translate widget coords to surface coords
+                                let (sx, sy) = native.surface_transform();
+                                toplevel.begin_move(&device, gdk::BUTTON_PRIMARY as i32, x + sx, y + sy, timestamp);
+                            }
+                        }
+                    }
+                }
+            }
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+        });
+        self.text_view.add_controller(drag);
+
+        // Right-click for compositor window menu (always-on-top, workspaces, etc.)
+        let right_click = gtk::GestureClick::new();
+        right_click.set_button(gdk::BUTTON_SECONDARY);
+        let window = self.window.clone();
+        right_click.connect_pressed(move |gesture, _n, _x, _y| {
+            if let Some(native) = window.native() {
+                if let Some(surface) = native.surface() {
+                    if let Some(toplevel) = surface.downcast_ref::<gdk::Toplevel>() {
+                        if let Some(event) = gesture.last_event(gesture.current_sequence().as_ref()) {
+                            toplevel.show_window_menu(&event);
+                        }
+                    }
+                }
+            }
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+        });
+        self.text_view.add_controller(right_click);
     }
 
     pub fn update_device_menu(&self, devices: &[AudioDevice]) {
