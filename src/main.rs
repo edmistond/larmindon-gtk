@@ -97,7 +97,7 @@ fn test_pipewire_available() -> Result<bool, Box<dyn std::error::Error>> {
 
 fn main() {
     let app = gtk::Application::builder()
-        .application_id("com.github.edmistond.larmindon")
+        .application_id("com.davidedmiston.Larmindon")
         .build();
 
     app.connect_startup(|_| {

@@ -45,6 +45,57 @@ On first run, configure the model path in Preferences (hamburger menu > Preferen
 - `pipewire` (default) — PipeWire audio capture
 - `cpal` (default) — CPAL audio capture (fallback)
 
+## Building for Packaging
+
+The project uses [Meson](https://mesonbuild.com/) to handle installation of the binary, desktop file, and icons. This wraps `cargo build` — you don't need to change your Rust workflow.
+
+### Prerequisites
+
+- Meson (>= 0.59)
+- Ninja
+- ImageMagick (`magick` CLI) — for resizing the app icon
+
+On Arch/Manjaro:
+
+```sh
+sudo pacman -S meson imagemagick
+```
+
+On Fedora:
+
+```sh
+sudo dnf install meson ImageMagick
+```
+
+On Ubuntu/Debian:
+
+```sh
+sudo apt install meson imagemagick
+```
+
+### Build & Install
+
+```sh
+meson setup builddir
+meson compile -C builddir
+meson install -C builddir            # installs to /usr/local by default
+```
+
+To install to a staging directory (e.g., for packaging):
+
+```sh
+DESTDIR=/path/to/staging meson install -C builddir
+```
+
+This installs:
+- Binary → `$prefix/bin/larmindon-gtk`
+- Desktop file → `$prefix/share/applications/com.davidedmiston.Larmindon.desktop`
+- Icons (48–256px) → `$prefix/share/icons/hicolor/<size>x<size>/apps/com.davidedmiston.Larmindon.png`
+
+### Flatpak
+
+A Flatpak manifest is not yet included. The Meson build system is the foundation for one — adding Flatpak support is a future task.
+
 ## Configuration
 
 Settings are stored in `~/.config/larmindon/settings.json` and can be edited via the Preferences dialog. The diagnostics database is at `~/.config/larmindon/larmindon_diag.sqlite`.
