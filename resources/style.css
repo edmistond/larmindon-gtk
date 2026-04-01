@@ -28,3 +28,7 @@ headerbar .title {
     color: #777777;
     font-style: italic;
 }
+
+.error {
+    color: #ef5350;
+}

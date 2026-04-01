@@ -134,6 +134,20 @@ impl MainWindow {
             });
         });
         self.window.add_action(&start);
+
+        // preferences action
+        let win_clone = self.clone();
+        let prefs = gio::SimpleAction::new("preferences", None);
+        prefs.connect_activate(move |_, _| {
+            let settings = win_clone.settings.borrow().clone();
+            let win = win_clone.clone();
+            let win_for_cb = win.clone();
+            crate::preferences::show_preferences(&win.window, &settings, move |new_settings| {
+                win_for_cb.apply_font_settings(&new_settings);
+                *win_for_cb.settings.borrow_mut() = new_settings;
+            });
+        });
+        self.window.add_action(&prefs);
     }
 
     fn setup_gestures(&self) {
@@ -223,6 +237,11 @@ impl MainWindow {
         controls.append(Some("Start"), Some("win.start"));
         menu.append_section(None, &controls);
 
+        // Settings section
+        let settings_section = gio::Menu::new();
+        settings_section.append(Some("Preferences..."), Some("win.preferences"));
+        menu.append_section(None, &settings_section);
+
         self.menu_button.set_menu_model(Some(&menu));
     }
 
@@ -233,6 +252,28 @@ impl MainWindow {
             if let Some(simple) = action.downcast_ref::<gio::SimpleAction>() {
                 simple.set_state(&device_id.to_variant());
             }
+        }
+    }
+
+    pub fn apply_font_settings(&self, settings: &Settings) {
+        // Build and apply dynamic CSS for font customization
+        let mut css = String::from(".caption-view { ");
+        if !settings.font_family.is_empty() {
+            css.push_str(&format!("font-family: \"{}\"; ", settings.font_family));
+        }
+        if settings.font_size_px > 0 {
+            css.push_str(&format!("font-size: {}px; ", settings.font_size_px));
+        }
+        css.push_str("}");
+
+        let provider = gtk::CssProvider::new();
+        provider.load_from_string(&css);
+        if let Some(display) = gdk::Display::default() {
+            gtk::style_context_add_provider_for_display(
+                &display,
+                &provider,
+                gtk::STYLE_PROVIDER_PRIORITY_USER,
+            );
         }
     }
 

@@ -1,6 +1,7 @@
 mod audio_capture;
 mod audio_config;
 mod audio_engine;
+mod preferences;
 mod settings;
 mod ui_event;
 mod vad;
@@ -148,6 +149,7 @@ fn main() {
 
         // Build the window
         let main_window = window::MainWindow::new(app, cmd_tx.clone(), settings.clone());
+        main_window.apply_font_settings(&settings);
 
         // Get initial device list, populate menu, and auto-start
         {
