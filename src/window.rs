@@ -26,39 +26,43 @@ impl MainWindow {
             .title("Larmindon")
             .default_width(600)
             .default_height(200)
+            .decorated(false)
             .build();
 
-        // Slim custom titlebar — just hamburger + close, no min/max/title
-        let headerbar = gtk::HeaderBar::new();
-        headerbar.set_show_title_buttons(false);
-        headerbar.add_css_class("slim-headerbar");
-
+        // No headerbar — build a toolbar row overlaid on the content
         let menu_button = gtk::MenuButton::builder()
             .icon_name("open-menu-symbolic")
             .tooltip_text("Menu")
             .build();
-        headerbar.pack_start(&menu_button);
-
-        // Empty title widget to suppress the default title label
-        let empty = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        headerbar.set_title_widget(Some(&empty));
+        menu_button.add_css_class("flat");
+        menu_button.add_css_class("overlay-btn");
 
         let close_button = gtk::Button::from_icon_name("window-close-symbolic");
         close_button.add_css_class("flat");
+        close_button.add_css_class("overlay-btn");
         close_button.set_tooltip_text(Some("Close"));
         let win_clone = window.clone();
         close_button.connect_clicked(move |_| {
             win_clone.close();
         });
-        headerbar.pack_end(&close_button);
 
-        window.set_titlebar(Some(&headerbar));
+        let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        toolbar.add_css_class("inline-toolbar");
+        toolbar.set_halign(gtk::Align::Fill);
+        toolbar.set_valign(gtk::Align::Start);
+        toolbar.append(&menu_button);
+        // Spacer to push close button to the right
+        let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        spacer.set_hexpand(true);
+        toolbar.append(&spacer);
+        toolbar.append(&close_button);
 
         // Scrolled text view for captions
         let text_view = gtk::TextView::builder()
             .editable(false)
             .cursor_visible(false)
             .wrap_mode(gtk::WrapMode::Word)
+            .top_margin(28) // leave room for the toolbar overlay
             .build();
         text_view.add_css_class("caption-view");
 
@@ -69,7 +73,11 @@ impl MainWindow {
             .child(&text_view)
             .build();
 
-        window.set_child(Some(&scrolled));
+        let overlay = gtk::Overlay::new();
+        overlay.set_child(Some(&scrolled));
+        overlay.add_overlay(&toolbar);
+
+        window.set_child(Some(&overlay));
 
         let main_window = Self {
             window,
