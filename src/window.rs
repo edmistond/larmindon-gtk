@@ -1,6 +1,7 @@
 use gtk4 as gtk;
 use gtk::prelude::*;
 
+#[derive(Clone)]
 pub struct MainWindow {
     pub window: gtk::ApplicationWindow,
     pub text_view: gtk::TextView,
