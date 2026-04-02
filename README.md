@@ -21,7 +21,7 @@ Note that Flatpak packaging is still a work in progress. It will install and run
 
 - Linux with PipeWire (or CPAL as fallback)
 - GTK 4.12+
-- [Nemotron ASR model](https://huggingface.co/nvidia/parakeet-tdt_ctc-110m) (via parakeet-rs)
+- [Nemotron ASR model](https://huggingface.co/altunenes/parakeet-rs/tree/main/nemotron-speech-streaming-en-0.6b) (via parakeet-rs)
 - Silero VAD model (included in `models/`)
 
 ## Build & Run
