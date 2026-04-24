@@ -98,7 +98,48 @@ fn test_pipewire_available() -> Result<bool, Box<dyn std::error::Error>> {
     Ok(false)
 }
 
+/// On macOS with Homebrew, GTK4's GSettings schemas (needed by FileDialog etc.)
+/// aren't in the default search path. Ensure the Homebrew schema directory is
+/// included in GSETTINGS_SCHEMA_DIR.
+#[cfg(target_os = "macos")]
+fn configure_macos_schemas() {
+    let candidates = [
+        std::env::var("HOMEBREW_PREFIX")
+            .ok()
+            .map(|p| std::path::PathBuf::from(p).join("share/glib-2.0/schemas")),
+        Some(std::path::PathBuf::from("/opt/homebrew/share/glib-2.0/schemas")),
+        Some(std::path::PathBuf::from("/usr/local/share/glib-2.0/schemas")),
+    ];
+
+    let brew_schema_dir = candidates
+        .into_iter()
+        .flatten()
+        .find(|p| p.join("gschemas.compiled").exists());
+
+    let Some(brew_dir) = brew_schema_dir else {
+        eprintln!(
+            "Warning: Could not find compiled GLib schemas. \
+             GTK file dialogs may not work. Set GSETTINGS_SCHEMA_DIR manually."
+        );
+        return;
+    };
+
+    let brew_str = brew_dir.to_string_lossy();
+    match std::env::var("GSETTINGS_SCHEMA_DIR") {
+        Ok(existing) if existing.split(':').any(|p| p == brew_str.as_ref()) => {}
+        Ok(existing) => {
+            std::env::set_var("GSETTINGS_SCHEMA_DIR", format!("{existing}:{brew_str}"));
+        }
+        Err(_) => {
+            std::env::set_var("GSETTINGS_SCHEMA_DIR", brew_dir);
+        }
+    }
+}
+
 fn main() {
+    #[cfg(target_os = "macos")]
+    configure_macos_schemas();
+
     let app = gtk::Application::builder()
         .application_id("com.davidedmiston.Larmindon")
         .build();
